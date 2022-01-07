@@ -1,8 +1,9 @@
-import { Component, ChangeDetectionStrategy, ViewChild, TemplateRef } from '@angular/core';
-import { startOfDay, endOfDay, subDays, addDays, endOfMonth, isSameDay, isSameMonth, addHours } from 'date-fns';
-import { Subject } from 'rxjs';
+import { Component, ChangeDetectionStrategy, ViewChild, TemplateRef, OnInit } from '@angular/core';
+import { startOfDay, endOfDay, isSameDay, isSameMonth } from 'date-fns';
+import { BehaviorSubject, Subject, take } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { CalendarEvent, CalendarEventAction, CalendarEventTimesChangedEvent, CalendarView } from 'angular-calendar';
+import { EventService } from 'src/app/service/event.service';
 
 const colors: any = {
   red: {
@@ -25,9 +26,9 @@ const colors: any = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./calendar.component.scss']
 })
-export class CalendarComponent {
+export class CalendarComponent implements OnInit {
 
-  @ViewChild('modalContent', { static: true }) modalContent: TemplateRef<any> | undefined;
+  @ViewChild('modalContent', { static: true }) modalContent!: TemplateRef<any>;
 
   view: CalendarView = CalendarView.Week;
 
@@ -35,77 +36,52 @@ export class CalendarComponent {
 
   viewDate: Date = new Date();
 
-  modalData: {
+  modalData!: {
     action: string;
     event: CalendarEvent;
-  } | undefined;
+  };
 
   actions: CalendarEventAction[] = [
     {
       label: '<i class="bi bi-pencil-fill"></i>',
       a11yLabel: 'Edit',
       onClick: ({ event }: { event: CalendarEvent; }): void => {
-        this.handleEvent('Edited', event);
+        this.editEvent(event);
+        // this.handleEvent('Edited', event);
       },
     },
     {
       label: '<i class="bi bi-trash-fill"></i>',
       a11yLabel: 'Delete',
       onClick: ({ event }: { event: CalendarEvent; }): void => {
-        this.events = this.events.filter((iEvent) => iEvent !== event);
-        this.handleEvent('Deleted', event);
+        this.deleteEvent(event);
+        this.events.next(this.events.getValue().filter((iEvent) => iEvent !== event));
+        // this.handleEvent('Deleted', event);
       },
     },
   ];
+
+  resizable = {
+    beforeStart: true,
+    afterEnd: true,
+  };
+
+  draggable: boolean = true;
 
   refresh = new Subject<void>();
 
-  events: CalendarEvent[] = [
-    {
-      start: subDays(startOfDay(new Date()), 1),
-      end: addDays(new Date(), 1),
-      title: 'A 3 day event',
-      color: colors.red,
-      actions: this.actions,
-      allDay: true,
-      resizable: {
-        beforeStart: true,
-        afterEnd: true,
-      },
-      draggable: true,
-    },
-    {
-      start: startOfDay(new Date()),
-      title: 'An event with no end date',
-      color: colors.yellow,
-      actions: this.actions,
-    },
-    {
-      start: subDays(endOfMonth(new Date()), 3),
-      end: addDays(endOfMonth(new Date()), 3),
-      title: 'A long event that spans 2 months',
-      color: colors.blue,
-      allDay: true,
-    },
-    {
-      start: addHours(startOfDay(new Date()), 2),
-      end: addHours(new Date(), 2),
-      title: 'A draggable and resizable event',
-      color: colors.yellow,
-      actions: this.actions,
-      resizable: {
-        beforeStart: true,
-        afterEnd: true,
-      },
-      draggable: true,
-    },
-  ];
+  events: BehaviorSubject<CalendarEvent[]> = new BehaviorSubject<CalendarEvent[]>([]);
 
   activeDayIsOpen: boolean = true;
 
   constructor(
     private modal: NgbModal,
+    private eventService: EventService,
   ) { }
+
+  ngOnInit(): void {
+    this.fetchEvents();
+  }
 
   dayClicked({ date, events }: { date: Date; events: CalendarEvent[]; }): void {
     if (isSameMonth(date, this.viewDate)) {
@@ -126,7 +102,8 @@ export class CalendarComponent {
     newStart,
     newEnd,
   }: CalendarEventTimesChangedEvent): void {
-    this.events = this.events.map((iEvent) => {
+
+    this.events.next(this.events.getValue().map((iEvent) => {
       if (iEvent === event) {
         return {
           ...event,
@@ -135,8 +112,9 @@ export class CalendarComponent {
         };
       }
       return iEvent;
-    });
-    this.handleEvent('Dropped or resized', event);
+    }));
+    this.editEvent(event);
+    // this.handleEvent('Dropped or resized', event);
   }
 
   handleEvent(action: string, event: CalendarEvent): void {
@@ -145,24 +123,40 @@ export class CalendarComponent {
   }
 
   addEvent(): void {
-    this.events = [
-      ...this.events,
-      {
-        title: 'New event',
-        start: startOfDay(new Date()),
-        end: endOfDay(new Date()),
-        color: colors.red,
-        draggable: true,
-        resizable: {
-          beforeStart: true,
-          afterEnd: true,
-        },
+    const newEventList = this.events.getValue();
+    newEventList.push({
+      title: 'New event',
+      start: startOfDay(new Date()),
+      end: endOfDay(new Date()),
+      color: colors.red,
+      draggable: true,
+      resizable: {
+        beforeStart: true,
+        afterEnd: true,
       },
-    ];
+    });
+    this.events.next(newEventList);
   }
 
   deleteEvent(eventToDelete: CalendarEvent) {
-    this.events = this.events.filter((event) => event !== eventToDelete);
+    this.eventService.delete(eventToDelete.id!).pipe(
+      take(1),
+    ).subscribe({
+      next: () => console.log('Esemény sikeresen törölve!'),
+    });
+  }
+
+  editEvent(eventToEdit: CalendarEvent): void {
+    const newEvent = { ...eventToEdit };
+    delete newEvent.draggable;
+    delete newEvent.resizable;
+    delete newEvent.actions;
+
+    this.eventService.update(newEvent).pipe(
+      take(1),
+    ).subscribe({
+      next: () => console.log('Esemény sikeresen frissítve!'),
+    });
   }
 
   setView(view: CalendarView) {
@@ -171,6 +165,24 @@ export class CalendarComponent {
 
   closeOpenMonthViewDay() {
     this.activeDayIsOpen = false;
+  }
+
+  fetchEvents(): void {
+    this.eventService.getAll().pipe(
+      take(1),
+    ).subscribe({
+      next: (eventList: CalendarEvent[]) => {
+        const newEventList = eventList.map(event => {
+          event.actions = this.actions;
+          event.resizable = new Object();
+          event.resizable.beforeStart = this.resizable.beforeStart;
+          event.resizable.afterEnd = this.resizable.afterEnd;
+          event.draggable = this.draggable;
+          return event;
+        });
+        this.events.next(newEventList);
+      }
+    });
   }
 
 }
