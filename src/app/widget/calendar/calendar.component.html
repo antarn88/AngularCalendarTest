@@ -68,6 +68,8 @@
     (dayClicked)="dayClicked($event.day)"
     (eventClicked)="handleEvent('Clicked', $event.event)"
     (eventTimesChanged)="eventTimesChanged($event)"
+    (columnHeaderClicked)="clickedColumn = $event.isoDayNumber"
+    (dayClicked)="clickedDate = $event.day.date"
   >
   </mwl-calendar-month-view>
   <mwl-calendar-week-view
@@ -77,6 +79,8 @@
     [refresh]="refresh"
     (eventClicked)="handleEvent('Clicked', $event.event)"
     (eventTimesChanged)="eventTimesChanged($event)"
+    (dayHeaderClicked)="clickedDate = $event.day.date"
+    (hourSegmentClicked)="hourSegmentClicked($event)"
   >
   </mwl-calendar-week-view>
   <mwl-calendar-day-view
@@ -86,6 +90,7 @@
     [refresh]="refresh"
     (eventClicked)="handleEvent('Clicked', $event.event)"
     (eventTimesChanged)="eventTimesChanged($event)"
+    (hourSegmentClicked)="hourSegmentClicked($event)"
   >
   </mwl-calendar-day-view>
 </div>

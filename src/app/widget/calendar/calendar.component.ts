@@ -46,8 +46,8 @@ export class CalendarComponent implements OnInit {
       label: '<i class="bi bi-pencil-fill"></i>',
       a11yLabel: 'Edit',
       onClick: ({ event }: { event: CalendarEvent; }): void => {
-        this.editEvent(event);
-        // this.handleEvent('Edited', event);
+        // this.updateEvent(event);
+        this.handleEvent('Edited', event);
       },
     },
     {
@@ -74,6 +74,12 @@ export class CalendarComponent implements OnInit {
 
   activeDayIsOpen: boolean = true;
 
+  // locale: string = 'hu';
+
+  clickedDate!: Date;
+
+  clickedColumn!: number;
+
   constructor(
     private modal: NgbModal,
     private eventService: EventService,
@@ -84,17 +90,27 @@ export class CalendarComponent implements OnInit {
   }
 
   dayClicked({ date, events }: { date: Date; events: CalendarEvent[]; }): void {
+    this.clickedDate = date;
     if (isSameMonth(date, this.viewDate)) {
       if (
         (isSameDay(this.viewDate, date) && this.activeDayIsOpen === true) ||
         events.length === 0
       ) {
+        this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
         this.activeDayIsOpen = false;
       } else {
         this.activeDayIsOpen = true;
+        // this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
       }
       this.viewDate = date;
+      // this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
     }
+
+  }
+
+  hourSegmentClicked(event: any): void {
+    this.handleEvent('Created', event);
+    this.clickedDate = event.date;
   }
 
   eventTimesChanged({
@@ -113,7 +129,7 @@ export class CalendarComponent implements OnInit {
       }
       return iEvent;
     }));
-    this.editEvent(event);
+    this.updateEvent(event, newStart, newEnd);
     // this.handleEvent('Dropped or resized', event);
   }
 
@@ -142,20 +158,31 @@ export class CalendarComponent implements OnInit {
     this.eventService.delete(eventToDelete.id!).pipe(
       take(1),
     ).subscribe({
-      next: () => console.log('Esemény sikeresen törölve!'),
+      next: () => {
+        console.log('Esemény sikeresen törölve!');
+      },
     });
   }
 
-  editEvent(eventToEdit: CalendarEvent): void {
+  updateEvent(eventToEdit: CalendarEvent, newStart: Date | undefined = undefined, newEnd: Date | undefined = undefined): void {
     const newEvent = { ...eventToEdit };
     delete newEvent.draggable;
     delete newEvent.resizable;
     delete newEvent.actions;
 
+    newEvent.start = newStart || newEvent.start;
+    newEvent.end = newEnd || newEvent.end;
+
+    // console.log('új esemény start:', newStart);
+    // console.log('új esemény end:', newEnd);
+
     this.eventService.update(newEvent).pipe(
       take(1),
     ).subscribe({
-      next: () => console.log('Esemény sikeresen frissítve!'),
+      next: () => {
+        this.fetchEvents();
+        console.log('Esemény sikeresen frissítve!');
+      },
     });
   }
 
