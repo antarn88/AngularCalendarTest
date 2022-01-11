@@ -29,6 +29,10 @@ const colors: any = {
     primary: '#e3bc08',
     secondary: '#FDF1BA',
   },
+  gray: {
+    primary: '#C5C3C3',
+    secondary: '#C5C3C3',
+  },
 };
 
 @Component({
@@ -107,8 +111,12 @@ export class CalendarComponent implements OnInit {
     id: [null],
     start: [null, Validators.required],
     end: [null, Validators.required],
-    title: [null, Validators.required]
+    title: [null, Validators.required],
+    color: [{ primary: '#1e90ff', secondary: '#D1E8FF' }],
+    isBreak: [false]
   });
+
+  isBreak: boolean = false;
 
   constructor(
     private modal: NgbModal,
@@ -162,13 +170,15 @@ export class CalendarComponent implements OnInit {
     return `${eventDate}T${eventTime}`;
   }
 
-  handleEvent(action: string, event: CalendarEvent): void {
+  handleEvent(action: string, event: any): void {
+    this.isBreak = event.isBreak;
     this.eventForm.patchValue(
       {
         id: event.id,
         title: event.title,
         start: this.dateToShortISOString(event.start),
         end: this.dateToShortISOString(event.end!),
+        isBreak: event.isBreak,
       }
     );
     this.modalData = { event, action };
@@ -187,7 +197,8 @@ export class CalendarComponent implements OnInit {
     });
   }
 
-  updateEvent(eventToEdit: CalendarEvent, newStart: Date | undefined = undefined, newEnd: Date | undefined = undefined): void {
+  updateEvent(eventToEdit: any, newStart: Date | undefined = undefined, newEnd: Date | undefined = undefined): void {
+    console.log(eventToEdit, newStart, newEnd);
     const newEvent = { ...eventToEdit };
     delete newEvent.draggable;
     delete newEvent.resizable;
@@ -195,6 +206,17 @@ export class CalendarComponent implements OnInit {
 
     newEvent.start = newStart || newEvent.start;
     newEvent.end = newEnd || newEvent.end;
+    newEvent.isBreak = this.isBreak;
+
+    if (!this.isBreak) {
+      newEvent.color.primary = '#1e90ff';
+      newEvent.color.secondary = '#D1E8FF';
+    } else {
+      newEvent.color.primary = '#C5C3C3';
+      newEvent.color.secondary = '#C5C3C3';
+    }
+
+    console.log(newEvent);
 
     this.eventService.update(newEvent).pipe(
       take(1),
@@ -233,6 +255,13 @@ export class CalendarComponent implements OnInit {
 
   onSubmit(): void {
     this.modal.dismissAll();
+
+    if (this.isBreak) {
+      this.eventForm.patchValue({ color: { primary: '#C5C3C3', secondary: '#C5C3C3' }, isBreak: true });
+    } else {
+      this.eventForm.patchValue({ color: { primary: '#1e90ff', secondary: '#D1E8FF' }, isBreak: false });
+    }
+
     if (this.eventForm.value.id) {
       this.eventService.update(this.eventForm.value).subscribe({
         next: () => {
@@ -242,6 +271,7 @@ export class CalendarComponent implements OnInit {
         },
       });
     } else {
+
       this.eventService.create(this.eventForm.value).subscribe({
         next: () => {
           this.fetchEvents();
@@ -253,12 +283,17 @@ export class CalendarComponent implements OnInit {
   }
 
   handleNewEvent(): void {
+    this.isBreak = false;
     this.resetEventForm();
     this.modal.open(this.modalContent, { size: 'lg' });
   }
 
   resetEventForm(): void {
     this.eventForm.patchValue({ id: null, start: null, end: null, title: null });
+  }
+
+  changeEventType(): void {
+    this.isBreak = !this.isBreak;
   }
 
 }

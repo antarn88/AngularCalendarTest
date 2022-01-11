@@ -4,19 +4,45 @@
       "id": 1,
       "start": "2022-01-13T07:30:00.000Z",
       "end": "2022-01-13T09:00:00.000Z",
-      "title": "Hajvágás"
+      "title": "Hajvágás",
+      "color": {
+        "primary": "#1e90ff",
+        "secondary": "#D1E8FF"
+      },
+      "isBreak": false
     },
     {
       "id": 2,
       "start": "2022-01-13T05:00:00.000Z",
       "end": "2022-01-13T06:00:00.000Z",
-      "title": "Körömvágás"
+      "title": "Körömvágás",
+      "color": {
+        "primary": "#1e90ff",
+        "secondary": "#D1E8FF"
+      },
+      "isBreak": false
     },
     {
       "id": 3,
-      "start": "2022-01-15T07:00:00.000Z",
-      "end": "2022-01-15T10:30:00.000Z",
-      "title": "Pedikűr"
+      "start": "2022-01-15T04:00:00.000Z",
+      "end": "2022-01-15T06:00:00.000Z",
+      "title": "Pedikűr",
+      "color": {
+        "primary": "#1e90ff",
+        "secondary": "#D1E8FF"
+      },
+      "isBreak": false
+    },
+    {
+      "id": 4,
+      "start": "2022-01-11T16:15:00.000Z",
+      "end": "2022-01-11T19:45:00.000Z",
+      "title": "Szünet",
+      "color": {
+        "primary": "#C5C3C3",
+        "secondary": "#C5C3C3"
+      },
+      "isBreak": true
     }
   ]
 }
