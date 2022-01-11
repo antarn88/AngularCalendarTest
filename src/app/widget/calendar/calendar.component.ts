@@ -2,8 +2,19 @@ import { Component, ChangeDetectionStrategy, ViewChild, TemplateRef, OnInit } fr
 import { startOfDay, endOfDay, isSameDay, isSameMonth } from 'date-fns';
 import { BehaviorSubject, Subject, take } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { CalendarEvent, CalendarEventAction, CalendarEventTimesChangedEvent, CalendarView } from 'angular-calendar';
+import {
+  CalendarDateFormatter,
+  CalendarEvent,
+  CalendarEventAction,
+  CalendarEventTimesChangedEvent,
+  CalendarEventTitleFormatter,
+  CalendarView,
+  DAYS_OF_WEEK
+} from 'angular-calendar';
+import { CustomDateFormatter } from './custom-date-formatter.provider';
 import { EventService } from 'src/app/service/event.service';
+import { CustomEventTitleFormatter } from './custom-event-title-formatter.provider';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 const colors: any = {
   red: {
@@ -24,7 +35,17 @@ const colors: any = {
   selector: 'app-calendar',
   templateUrl: './calendar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrls: ['./calendar.component.scss']
+  styleUrls: ['./calendar.component.scss'],
+  providers: [
+    {
+      provide: CalendarDateFormatter,
+      useClass: CustomDateFormatter,
+    },
+    {
+      provide: CalendarEventTitleFormatter,
+      useClass: CustomEventTitleFormatter,
+    },
+  ],
 })
 export class CalendarComponent implements OnInit {
 
@@ -46,7 +67,6 @@ export class CalendarComponent implements OnInit {
       label: '<i class="bi bi-pencil-fill"></i>',
       a11yLabel: 'Edit',
       onClick: ({ event }: { event: CalendarEvent; }): void => {
-        // this.updateEvent(event);
         this.handleEvent('Edited', event);
       },
     },
@@ -56,7 +76,6 @@ export class CalendarComponent implements OnInit {
       onClick: ({ event }: { event: CalendarEvent; }): void => {
         this.deleteEvent(event);
         this.events.next(this.events.getValue().filter((iEvent) => iEvent !== event));
-        // this.handleEvent('Deleted', event);
       },
     },
   ];
@@ -72,40 +91,53 @@ export class CalendarComponent implements OnInit {
 
   events: BehaviorSubject<CalendarEvent[]> = new BehaviorSubject<CalendarEvent[]>([]);
 
-  activeDayIsOpen: boolean = true;
+  activeDayIsOpen: boolean = false;
 
-  // locale: string = 'hu';
+  locale: string = 'hu-HU';
+
+  weekStartsOn: number = DAYS_OF_WEEK.MONDAY;
+
+  weekendDays: number[] = [DAYS_OF_WEEK.SATURDAY, DAYS_OF_WEEK.SUNDAY];
 
   clickedDate!: Date;
 
   clickedColumn!: number;
 
+  eventForm: FormGroup = this.formBuilder.group({
+    id: [null],
+    start: [null, Validators.required],
+    end: [null, Validators.required],
+    title: [null, Validators.required]
+  });
+
   constructor(
     private modal: NgbModal,
     private eventService: EventService,
+    private formBuilder: FormBuilder,
   ) { }
 
   ngOnInit(): void {
     this.fetchEvents();
   }
 
+  sortEventsByDate(events: CalendarEvent[]): CalendarEvent[] {
+    return events.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  }
+
   dayClicked({ date, events }: { date: Date; events: CalendarEvent[]; }): void {
+    events = this.sortEventsByDate(events);
     this.clickedDate = date;
     if (isSameMonth(date, this.viewDate)) {
-      if (
-        (isSameDay(this.viewDate, date) && this.activeDayIsOpen === true) ||
-        events.length === 0
-      ) {
-        this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
+      if ((isSameDay(this.viewDate, date) && this.activeDayIsOpen === true) || events.length === 0) {
         this.activeDayIsOpen = false;
       } else {
         this.activeDayIsOpen = true;
-        // this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
       }
       this.viewDate = date;
-      // this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
     }
-
+    if (!events.length) {
+      this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
+    }
   }
 
   hourSegmentClicked(event: any): void {
@@ -113,27 +145,32 @@ export class CalendarComponent implements OnInit {
     this.clickedDate = event.date;
   }
 
-  eventTimesChanged({
-    event,
-    newStart,
-    newEnd,
-  }: CalendarEventTimesChangedEvent): void {
-
+  eventTimesChanged({ event, newStart, newEnd }: CalendarEventTimesChangedEvent): void {
+    this.activeDayIsOpen = false;
     this.events.next(this.events.getValue().map((iEvent) => {
       if (iEvent === event) {
-        return {
-          ...event,
-          start: newStart,
-          end: newEnd,
-        };
+        return { ...event, start: newStart, end: newEnd };
       }
       return iEvent;
     }));
     this.updateEvent(event, newStart, newEnd);
-    // this.handleEvent('Dropped or resized', event);
+  }
+
+  dateToShortISOString(date: Date): string {
+    const eventDate = date.toISOString().split('T')[0];
+    const eventTime = date.toISOString().split('T')[1].split(':').slice(0, 2).join(':');
+    return `${eventDate}T${eventTime}`;
   }
 
   handleEvent(action: string, event: CalendarEvent): void {
+    this.eventForm.patchValue(
+      {
+        id: event.id,
+        title: event.title,
+        start: this.dateToShortISOString(event.start),
+        end: this.dateToShortISOString(event.end!),
+      }
+    );
     this.modalData = { event, action };
     this.modal.open(this.modalContent, { size: 'lg' });
   }
@@ -173,9 +210,6 @@ export class CalendarComponent implements OnInit {
     newEvent.start = newStart || newEvent.start;
     newEvent.end = newEnd || newEvent.end;
 
-    // console.log('új esemény start:', newStart);
-    // console.log('új esemény end:', newEnd);
-
     this.eventService.update(newEvent).pipe(
       take(1),
     ).subscribe({
@@ -195,9 +229,7 @@ export class CalendarComponent implements OnInit {
   }
 
   fetchEvents(): void {
-    this.eventService.getAll().pipe(
-      take(1),
-    ).subscribe({
+    this.eventService.getAll().subscribe({
       next: (eventList: CalendarEvent[]) => {
         const newEventList = eventList.map(event => {
           event.actions = this.actions;
@@ -209,6 +241,16 @@ export class CalendarComponent implements OnInit {
         });
         this.events.next(newEventList);
       }
+    });
+  }
+
+  onSubmit(): void {
+    this.modal.dismissAll();
+    this.eventService.update(this.eventForm.value).subscribe({
+      next: () => {
+        this.fetchEvents();
+        console.log('Esemény sikeresen frissítve!');
+      },
     });
   }
 

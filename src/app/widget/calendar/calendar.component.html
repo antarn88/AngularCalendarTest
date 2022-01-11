@@ -8,14 +8,14 @@
         [(viewDate)]="viewDate"
         (viewDateChange)="closeOpenMonthViewDay()"
       >
-        Previous
+        Előző
       </div>
       <div
         class="btn btn-outline-secondary"
         mwlCalendarToday
         [(viewDate)]="viewDate"
       >
-        Today
+        Ma
       </div>
       <div
         class="btn btn-primary"
@@ -24,12 +24,14 @@
         [(viewDate)]="viewDate"
         (viewDateChange)="closeOpenMonthViewDay()"
       >
-        Next
+        Következő
       </div>
     </div>
   </div>
   <div class="col-md-4">
-    <h3>{{ viewDate | calendarDate: view + "ViewTitle":"en" }}</h3>
+    <h3>
+      {{ viewDate | calendarDate: view + "ViewTitle":locale:weekStartsOn }}
+    </h3>
   </div>
   <div class="col-md-4">
     <div class="btn-group">
@@ -38,21 +40,21 @@
         (click)="setView(CalendarView.Month)"
         [class.active]="view === CalendarView.Month"
       >
-        Month
+        Hónap
       </div>
       <div
         class="btn btn-primary"
         (click)="setView(CalendarView.Week)"
         [class.active]="view === CalendarView.Week"
       >
-        Week
+        Hét
       </div>
       <div
         class="btn btn-primary"
         (click)="setView(CalendarView.Day)"
         [class.active]="view === CalendarView.Day"
       >
-        Day
+        Nap
       </div>
     </div>
   </div>
@@ -70,8 +72,11 @@
     (eventTimesChanged)="eventTimesChanged($event)"
     (columnHeaderClicked)="clickedColumn = $event.isoDayNumber"
     (dayClicked)="clickedDate = $event.day.date"
-  >
-  </mwl-calendar-month-view>
+    [locale]="locale"
+    [weekStartsOn]="weekStartsOn"
+    [weekendDays]="weekendDays"
+  ></mwl-calendar-month-view>
+
   <mwl-calendar-week-view
     *ngSwitchCase="CalendarView.Week"
     [viewDate]="viewDate"
@@ -81,8 +86,11 @@
     (eventTimesChanged)="eventTimesChanged($event)"
     (dayHeaderClicked)="clickedDate = $event.day.date"
     (hourSegmentClicked)="hourSegmentClicked($event)"
-  >
-  </mwl-calendar-week-view>
+    [locale]="locale"
+    [weekStartsOn]="weekStartsOn"
+    [weekendDays]="weekendDays"
+  ></mwl-calendar-week-view>
+
   <mwl-calendar-day-view
     *ngSwitchCase="CalendarView.Day"
     [viewDate]="viewDate"
@@ -91,30 +99,49 @@
     (eventClicked)="handleEvent('Clicked', $event.event)"
     (eventTimesChanged)="eventTimesChanged($event)"
     (hourSegmentClicked)="hourSegmentClicked($event)"
-  >
-  </mwl-calendar-day-view>
+    [locale]="locale"
+  ></mwl-calendar-day-view>
 </div>
 
 <ng-template #modalContent let-close="close">
-  <div class="modal-header">
-    <h5 class="modal-title">Event action occurred</h5>
-    <button type="button" class="close" (click)="close()">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  <div class="modal-body">
-    <div>
-      Action:
-      <pre>{{ modalData?.action }}</pre>
+  <form [formGroup]="eventForm" (ngSubmit)="onSubmit()">
+    <div class="modal-header">
+      <h5 class="modal-title">Esemény szerkesztése</h5>
+      <button type="button" class="close" (click)="close()">
+        <span aria-hidden="true">&times;</span>
+      </button>
     </div>
-    <div>
-      Event:
-      <pre>{{ modalData?.event | json }}</pre>
+    <div class="modal-body">
+      <label for="title" class="form-label">Esemény neve</label>
+      <input
+        type="text"
+        class="form-control mb-2"
+        for="title"
+        id="title"
+        formControlName="title"
+      />
+
+      <label for="start" class="form-label">Esemény kezdete</label>
+      <input
+        class="form-control mb-2"
+        type="datetime-local"
+        id="start"
+        formControlName="start"
+      />
+
+      <label for="end" class="form-label">Esemény vége</label>
+      <input
+        class="form-control"
+        type="datetime-local"
+        id="end"
+        formControlName="end"
+      />
     </div>
-  </div>
-  <div class="modal-footer">
-    <button type="button" class="btn btn-outline-secondary" (click)="close()">
-      OK
-    </button>
-  </div>
+    <div class="modal-footer">
+      <button type="submit" class="btn btn-primary close">Mentés</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="close()">
+        Mégse
+      </button>
+    </div>
+  </form>
 </ng-template>

@@ -34,7 +34,6 @@ export class EventService {
   }
 
   update(event: CalendarEvent): Observable<CalendarEvent> {
-    console.log('frissített esemény:', event);
     return this.http.put<CalendarEvent>(`${this.serverUrl}/${event.id}`, event);
   }
 
