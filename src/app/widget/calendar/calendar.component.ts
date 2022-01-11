@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ViewChild, TemplateRef, OnInit } from '@angular/core';
-import { startOfDay, endOfDay, isSameDay, isSameMonth } from 'date-fns';
+import { isSameDay, isSameMonth } from 'date-fns';
 import { BehaviorSubject, Subject, take } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import {
@@ -146,7 +146,7 @@ export class CalendarComponent implements OnInit {
   }
 
   eventTimesChanged({ event, newStart, newEnd }: CalendarEventTimesChangedEvent): void {
-    this.activeDayIsOpen = false;
+    this.closeOpenMonthViewDay();
     this.events.next(this.events.getValue().map((iEvent) => {
       if (iEvent === event) {
         return { ...event, start: newStart, end: newEnd };
@@ -175,27 +175,13 @@ export class CalendarComponent implements OnInit {
     this.modal.open(this.modalContent, { size: 'lg' });
   }
 
-  addEvent(): void {
-    const newEventList = this.events.getValue();
-    newEventList.push({
-      title: 'New event',
-      start: startOfDay(new Date()),
-      end: endOfDay(new Date()),
-      color: colors.red,
-      draggable: true,
-      resizable: {
-        beforeStart: true,
-        afterEnd: true,
-      },
-    });
-    this.events.next(newEventList);
-  }
-
   deleteEvent(eventToDelete: CalendarEvent) {
     this.eventService.delete(eventToDelete.id!).pipe(
       take(1),
     ).subscribe({
       next: () => {
+        this.fetchEvents();
+        this.resetEventForm();
         console.log('Esemény sikeresen törölve!');
       },
     });
@@ -215,6 +201,7 @@ export class CalendarComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.fetchEvents();
+        this.resetEventForm();
         console.log('Esemény sikeresen frissítve!');
       },
     });
@@ -246,12 +233,32 @@ export class CalendarComponent implements OnInit {
 
   onSubmit(): void {
     this.modal.dismissAll();
-    this.eventService.update(this.eventForm.value).subscribe({
-      next: () => {
-        this.fetchEvents();
-        console.log('Esemény sikeresen frissítve!');
-      },
-    });
+    if (this.eventForm.value.id) {
+      this.eventService.update(this.eventForm.value).subscribe({
+        next: () => {
+          this.fetchEvents();
+          this.resetEventForm();
+          console.log('Esemény sikeresen frissítve!');
+        },
+      });
+    } else {
+      this.eventService.create(this.eventForm.value).subscribe({
+        next: () => {
+          this.fetchEvents();
+          this.resetEventForm();
+          console.log('Esemény sikeresen létrehozva!');
+        },
+      });
+    }
+  }
+
+  handleNewEvent(): void {
+    this.resetEventForm();
+    this.modal.open(this.modalContent, { size: 'lg' });
+  }
+
+  resetEventForm(): void {
+    this.eventForm.patchValue({ id: null, start: null, end: null, title: null });
   }
 
 }
