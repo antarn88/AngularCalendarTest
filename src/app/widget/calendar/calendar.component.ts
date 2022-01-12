@@ -1,14 +1,17 @@
 import { Component, ChangeDetectionStrategy, ViewChild, TemplateRef, OnInit } from '@angular/core';
 import { isSameDay, isSameMonth } from 'date-fns';
-import { BehaviorSubject, Subject, take } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import {
   CalendarDateFormatter,
+  CalendarDayViewBeforeRenderEvent,
   CalendarEvent,
   CalendarEventAction,
   CalendarEventTimesChangedEvent,
   CalendarEventTitleFormatter,
+  CalendarMonthViewBeforeRenderEvent,
   CalendarView,
+  CalendarWeekViewBeforeRenderEvent,
   DAYS_OF_WEEK
 } from 'angular-calendar';
 import { CustomDateFormatter } from './custom-date-formatter.provider';
@@ -318,6 +321,43 @@ export class CalendarComponent implements OnInit {
 
   changeEventType(eventType: string): void {
     this.currentEvent.meta.eventType = eventType;
+  }
+
+  beforeMonthViewRender(renderEvent: CalendarMonthViewBeforeRenderEvent): void {
+    renderEvent.body.forEach((day) => {
+      const dayOfMonth = day.date.getDate();
+      if (dayOfMonth > 5 && dayOfMonth < 10 && day.inMonth) {
+        day.cssClass = 'bg-pink';
+      }
+    });
+  }
+
+  beforeWeekViewRender(renderEvent: CalendarWeekViewBeforeRenderEvent) {
+    renderEvent.hourColumns.forEach((hourColumn) => {
+      hourColumn.hours.forEach((hour) => {
+        hour.segments.forEach((segment) => {
+          if (
+            segment.date.getHours() >= 2 &&
+            segment.date.getHours() <= 5 &&
+            segment.date.getDay() === 2
+          ) {
+            segment.cssClass = 'bg-pink';
+          }
+        });
+      });
+    });
+  }
+
+  beforeDayViewRender(renderEvent: CalendarDayViewBeforeRenderEvent) {
+    renderEvent.hourColumns.forEach((hourColumn) => {
+      hourColumn.hours.forEach((hour) => {
+        hour.segments.forEach((segment) => {
+          if (segment.date.getHours() >= 2 && segment.date.getHours() <= 5) {
+            segment.cssClass = 'bg-pink';
+          }
+        });
+      });
+    });
   }
 
 }

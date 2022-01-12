@@ -83,6 +83,7 @@
     [locale]="locale"
     [weekStartsOn]="weekStartsOn"
     [weekendDays]="weekendDays"
+    (beforeViewRender)="beforeMonthViewRender($event)"
   ></mwl-calendar-month-view>
 
   <mwl-calendar-week-view
@@ -97,6 +98,7 @@
     [locale]="locale"
     [weekStartsOn]="weekStartsOn"
     [weekendDays]="weekendDays"
+    (beforeViewRender)="beforeWeekViewRender($event)"
   ></mwl-calendar-week-view>
 
   <mwl-calendar-day-view
@@ -108,6 +110,7 @@
     (eventTimesChanged)="eventTimesChanged($event)"
     (hourSegmentClicked)="hourSegmentClicked($event)"
     [locale]="locale"
+    (beforeViewRender)="beforeDayViewRender($event)"
   ></mwl-calendar-day-view>
 </div>
 

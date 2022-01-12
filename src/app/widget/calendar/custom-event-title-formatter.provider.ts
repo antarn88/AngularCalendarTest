@@ -6,7 +6,6 @@ import { formatDate } from '@angular/common';
 export class CustomEventTitleFormatter extends CalendarEventTitleFormatter {
   constructor(@Inject(LOCALE_ID) private locale: string) {
     super();
-    this.locale = 'hu-HU';
   }
 
   // you can override any of the methods defined in the parent class
