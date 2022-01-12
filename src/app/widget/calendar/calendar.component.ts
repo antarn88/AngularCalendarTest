@@ -112,11 +112,12 @@ export class CalendarComponent implements OnInit {
     start: [null, Validators.required],
     end: [null, Validators.required],
     title: [null, Validators.required],
-    color: [{ primary: '#1e90ff', secondary: '#D1E8FF' }],
-    isBreak: [false]
+    color: [{ primary: colors.blue.primary, secondary: colors.blue.secondary }],
+    meta: [{ eventType: 'Event' }]
   });
 
-  isBreak: boolean = false;
+  currentEvent!: CalendarEvent;
+
 
   constructor(
     private modal: NgbModal,
@@ -126,6 +127,7 @@ export class CalendarComponent implements OnInit {
 
   ngOnInit(): void {
     this.fetchEvents();
+    // this.currentEvent.meta.eventType = 'Event';
   }
 
   sortEventsByDate(events: CalendarEvent[]): CalendarEvent[] {
@@ -154,10 +156,15 @@ export class CalendarComponent implements OnInit {
   }
 
   eventTimesChanged({ event, newStart, newEnd }: CalendarEventTimesChangedEvent): void {
+    this.currentEvent = event;
+
+    this.currentEvent.meta.eventType = event.meta.eventType;
+
+
     this.closeOpenMonthViewDay();
     this.events.next(this.events.getValue().map((iEvent) => {
       if (iEvent === event) {
-        return { ...event, start: newStart, end: newEnd };
+        return { ...event, start: newStart, end: newEnd, meta: { eventType: event.meta.eventType } };
       }
       return iEvent;
     }));
@@ -165,30 +172,50 @@ export class CalendarComponent implements OnInit {
   }
 
   dateToShortISOString(date: Date): string {
-    const eventDate = date.toISOString().split('T')[0];
-    const eventTime = date.toISOString().split('T')[1].split(':').slice(0, 2).join(':');
+    let eventDate;
+    let eventTime;
+    if (date) {
+      eventDate = date.toISOString().split('T')[0];
+      eventTime = date.toISOString().split('T')[1].split(':').slice(0, 2).join(':');
+      return `${eventDate}T${eventTime}`;
+    } else {
+      eventDate = new Date().toISOString().split('T')[0];
+      eventTime = new Date().toISOString().split('T')[1].split(':').slice(0, 2).join(':');
+    }
     return `${eventDate}T${eventTime}`;
+
   }
 
   handleEvent(action: string, event: any): void {
-    this.isBreak = event.isBreak;
-    this.eventForm.patchValue(
-      {
-        id: event.id,
-        title: event.title,
-        start: this.dateToShortISOString(event.start),
-        end: this.dateToShortISOString(event.end!),
-        isBreak: event.isBreak,
-      }
-    );
+    if (event.hasOwnProperty('date')) {
+      this.currentEvent.meta.eventType = 'Event';
+      this.eventForm.patchValue(
+        {
+          id: event.id,
+          title: event.title,
+          start: this.dateToShortISOString(event.date),
+          end: this.dateToShortISOString(event.date),
+        }
+      );
+    } else {
+      this.currentEvent = event;
+      this.currentEvent.meta.eventType = event.meta.eventType;
+      this.eventForm.patchValue(
+        {
+          id: event.id,
+          title: event.title,
+          start: this.dateToShortISOString(this.currentEvent.start),
+          end: this.dateToShortISOString(this.currentEvent.end!),
+          meta: { eventType: event.meta.eventType },
+        }
+      );
+    }
     this.modalData = { event, action };
     this.modal.open(this.modalContent, { size: 'lg' });
   }
 
   deleteEvent(eventToDelete: CalendarEvent) {
-    this.eventService.delete(eventToDelete.id!).pipe(
-      take(1),
-    ).subscribe({
+    this.eventService.delete(eventToDelete.id!).subscribe({
       next: () => {
         this.fetchEvents();
         this.resetEventForm();
@@ -198,7 +225,6 @@ export class CalendarComponent implements OnInit {
   }
 
   updateEvent(eventToEdit: any, newStart: Date | undefined = undefined, newEnd: Date | undefined = undefined): void {
-    console.log(eventToEdit, newStart, newEnd);
     const newEvent = { ...eventToEdit };
     delete newEvent.draggable;
     delete newEvent.resizable;
@@ -206,21 +232,20 @@ export class CalendarComponent implements OnInit {
 
     newEvent.start = newStart || newEvent.start;
     newEvent.end = newEnd || newEvent.end;
-    newEvent.isBreak = this.isBreak;
+    newEvent.meta.eventType = this.currentEvent.meta.eventType;
 
-    if (!this.isBreak) {
-      newEvent.color.primary = '#1e90ff';
-      newEvent.color.secondary = '#D1E8FF';
+    newEvent.start = this.dateToShortISOString(newEvent.start);
+    newEvent.end = this.dateToShortISOString(newEvent.end);
+
+    if (this.currentEvent.meta.eventType === 'Event') {
+      newEvent.color.primary = colors.blue.primary;
+      newEvent.color.secondary = colors.blue.secondary;
     } else {
-      newEvent.color.primary = '#C5C3C3';
-      newEvent.color.secondary = '#C5C3C3';
+      newEvent.color.primary = colors.gray.primary;
+      newEvent.color.secondary = colors.gray.secondary;
     }
 
-    console.log(newEvent);
-
-    this.eventService.update(newEvent).pipe(
-      take(1),
-    ).subscribe({
+    this.eventService.update(newEvent).subscribe({
       next: () => {
         this.fetchEvents();
         this.resetEventForm();
@@ -256,10 +281,10 @@ export class CalendarComponent implements OnInit {
   onSubmit(): void {
     this.modal.dismissAll();
 
-    if (this.isBreak) {
-      this.eventForm.patchValue({ color: { primary: '#C5C3C3', secondary: '#C5C3C3' }, isBreak: true });
+    if (this.currentEvent.meta.eventType === 'Break') {
+      this.eventForm.patchValue({ color: { primary: colors.gray.primary, secondary: colors.gray.secondary }, meta: { eventType: 'Break' } });
     } else {
-      this.eventForm.patchValue({ color: { primary: '#1e90ff', secondary: '#D1E8FF' }, isBreak: false });
+      this.eventForm.patchValue({ color: { primary: colors.blue.primary, secondary: colors.blue.secondary }, meta: { eventType: 'Event' } });
     }
 
     if (this.eventForm.value.id) {
@@ -283,7 +308,6 @@ export class CalendarComponent implements OnInit {
   }
 
   handleNewEvent(): void {
-    this.isBreak = false;
     this.resetEventForm();
     this.modal.open(this.modalContent, { size: 'lg' });
   }
@@ -292,8 +316,8 @@ export class CalendarComponent implements OnInit {
     this.eventForm.patchValue({ id: null, start: null, end: null, title: null });
   }
 
-  changeEventType(): void {
-    this.isBreak = !this.isBreak;
+  changeEventType(eventType: string): void {
+    this.currentEvent.meta.eventType = eventType;
   }
 
 }
