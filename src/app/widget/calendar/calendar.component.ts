@@ -100,7 +100,7 @@ export class CalendarComponent implements OnInit {
 
   activeDayIsOpen: boolean = false;
 
-  locale: string = 'hu-HU';
+  locale = 'hu-HU';
 
   weekStartsOn: number = DAYS_OF_WEEK.MONDAY;
 
@@ -130,7 +130,6 @@ export class CalendarComponent implements OnInit {
 
   ngOnInit(): void {
     this.fetchEvents();
-    // this.currentEvent.meta.eventType = 'Event';
   }
 
   sortEventsByDate(events: CalendarEvent[]): CalendarEvent[] {
@@ -154,6 +153,7 @@ export class CalendarComponent implements OnInit {
   }
 
   hourSegmentClicked(event: any): void {
+    this.resetEventForm();
     this.handleEvent('Created', event);
     this.clickedDate = event.date;
   }
@@ -191,7 +191,11 @@ export class CalendarComponent implements OnInit {
 
   handleEvent(action: string, event: any): void {
     if (event.hasOwnProperty('date')) {
-      this.currentEvent.meta.eventType = 'Event';
+
+      if (this.currentEvent) {
+        this.currentEvent.meta.eventType = 'Event';
+      }
+
       this.eventForm.patchValue(
         {
           id: event.id,
@@ -202,7 +206,13 @@ export class CalendarComponent implements OnInit {
       );
     } else {
       this.currentEvent = event;
-      this.currentEvent.meta.eventType = event.meta.eventType;
+
+      if (this.currentEvent && !this.currentEvent.id) {
+        this.currentEvent.meta = { eventType: 'Event' };
+        this.currentEvent.end = new Date(Date.parse(this.currentEvent.end!.toISOString()) + 86400000);
+        this.currentEvent.meta.eventType = event.meta.eventType;
+      }
+
       this.eventForm.patchValue(
         {
           id: event.id,
@@ -284,7 +294,7 @@ export class CalendarComponent implements OnInit {
   onSubmit(): void {
     this.modal.dismissAll();
 
-    if (this.currentEvent.meta.eventType === 'Break') {
+    if (this.currentEvent && this.currentEvent.meta.eventType === 'Break') {
       this.eventForm.patchValue({ color: { primary: colors.gray.primary, secondary: colors.gray.secondary }, meta: { eventType: 'Break' } });
     } else {
       this.eventForm.patchValue({ color: { primary: colors.blue.primary, secondary: colors.blue.secondary }, meta: { eventType: 'Event' } });
@@ -312,10 +322,23 @@ export class CalendarComponent implements OnInit {
 
   handleNewEvent(): void {
     this.resetEventForm();
+
+    if (this.currentEvent) {
+      this.currentEvent.meta.eventType = 'Event';
+    }
+
+    this.eventForm.patchValue({
+      start: this.dateToShortISOString(new Date()),
+      end: this.dateToShortISOString(new Date(Date.parse(new Date().toISOString()) + 3600000))
+    });
     this.modal.open(this.modalContent, { size: 'lg' });
   }
 
   resetEventForm(): void {
+    if (this.currentEvent) {
+      this.currentEvent.id = '';
+    }
+
     this.eventForm.patchValue({ id: null, start: null, end: null, title: null });
   }
 
@@ -358,6 +381,10 @@ export class CalendarComponent implements OnInit {
         });
       });
     });
+  }
+
+  startAndEndDateValidator(start: string, end: string): boolean {
+    return Date.parse(start) < Date.parse(end) ? true : false;
   }
 
 }

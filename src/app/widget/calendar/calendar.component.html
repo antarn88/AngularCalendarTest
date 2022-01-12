@@ -117,7 +117,14 @@
 <ng-template #modalContent let-close="close">
   <form [formGroup]="eventForm" (ngSubmit)="onSubmit()">
     <div class="modal-header">
-      <h5 class="modal-title">Esemény szerkesztése</h5>
+      <h5 class="modal-title">
+        <span *ngIf="!currentEvent || !currentEvent.id"
+          >Új esemény felvétele</span
+        >
+        <span *ngIf="currentEvent && currentEvent.id"
+          >Esemény szerkesztése</span
+        >
+      </h5>
       <button type="button" class="close" (click)="close()">
         <span aria-hidden="true">&times;</span>
       </button>
@@ -161,7 +168,7 @@
       </div>
       <br />
 
-      <label for="title" class="form-label">Esemény neve</label>
+      <label for="title" class="form-label">Esemény neve *</label>
       <input
         type="text"
         class="form-control mb-2"
@@ -170,16 +177,18 @@
         formControlName="title"
       />
 
-      <label for="start" class="form-label">Esemény kezdete</label>
+      <label for="start" class="form-label">Esemény kezdete *</label>
       <input
+        #start
         class="form-control mb-2"
         type="datetime-local"
         id="start"
         formControlName="start"
       />
 
-      <label for="end" class="form-label">Esemény vége</label>
+      <label for="end" class="form-label">Esemény vége *</label>
       <input
+        #end
         class="form-control"
         type="datetime-local"
         id="end"
@@ -190,7 +199,10 @@
       <button
         type="submit"
         class="btn btn-primary close"
-        [disabled]="eventForm.status === 'INVALID'"
+        [disabled]="
+          eventForm.status === 'INVALID' ||
+          !startAndEndDateValidator(start.value, end.value)
+        "
       >
         Mentés
       </button>
