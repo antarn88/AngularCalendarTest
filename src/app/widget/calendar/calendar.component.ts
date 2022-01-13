@@ -387,7 +387,7 @@ export class CalendarComponent implements OnInit {
       hourColumn.hours.forEach((hour) => {
         hour.segments.forEach((segment) => {
           const isWeekend = this.weekendDays.find(item => item === segment.date.getDay());
-          if (isWeekend) {
+          if (isWeekend === 0 || isWeekend) {
             segment.cssClass = 'bg-pink';
           }
           // if (segment.date.getHours() >= 2 && segment.date.getHours() <= 5) {
