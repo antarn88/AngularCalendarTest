@@ -75,7 +75,7 @@
     [events]="(events | async)!"
     [refresh]="refresh"
     [activeDayIsOpen]="activeDayIsOpen"
-    (dayClicked)="dayClicked($event.day)"
+    (dayClicked)="dayClicked($event)"
     (eventClicked)="handleEvent('Clicked', $event.event)"
     (eventTimesChanged)="eventTimesChanged($event)"
     (columnHeaderClicked)="clickedColumn = $event.isoDayNumber"

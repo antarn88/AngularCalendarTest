@@ -11,7 +11,7 @@ export class CustomEventTitleFormatter extends CalendarEventTitleFormatter {
   // you can override any of the methods defined in the parent class
 
   override month(event: CalendarEvent): string {
-    return `<b>${formatDate(event.start, 'H:mm', this.locale)}</b> ${event.title
+    return `<b>${formatDate(event.start, 'H:mm', this.locale)}-${formatDate(event.end!, 'H:mm', this.locale)}</b> ${event.title
       }`;
   }
 
@@ -21,7 +21,7 @@ export class CustomEventTitleFormatter extends CalendarEventTitleFormatter {
   }
 
   override day(event: CalendarEvent): string {
-    return `<b>${formatDate(event.start, 'H:mm', this.locale)}</b> ${event.title
+    return `<b>${formatDate(event.start, 'H:mm', this.locale)}-${formatDate(event.end!, 'H:mm', this.locale)}</b> ${event.title
       }`;
   }
 }

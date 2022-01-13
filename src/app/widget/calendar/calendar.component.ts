@@ -132,30 +132,37 @@ export class CalendarComponent implements OnInit {
     this.fetchEvents();
   }
 
-  sortEventsByDate(events: CalendarEvent[]): CalendarEvent[] {
-    return events.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  }
+  dayClicked(event: any): void {
+    const classList = Array.from(event.sourceEvent.srcElement.parentElement.classList);
+    const isBreakTime = !!classList.find(cl => cl === 'bg-pink');
+    const date: Date = event.day.date;
+    const events: CalendarEvent[] = event.day.events;
 
-  dayClicked({ date, events }: { date: Date; events: CalendarEvent[]; }): void {
-    events = this.sortEventsByDate(events);
-    this.clickedDate = date;
-    if (isSameMonth(date, this.viewDate)) {
-      if ((isSameDay(this.viewDate, date) && this.activeDayIsOpen === true) || events.length === 0) {
-        this.activeDayIsOpen = false;
-      } else {
-        this.activeDayIsOpen = true;
+    if (!isBreakTime) {
+      this.clickedDate = date;
+      if (isSameMonth(date, this.viewDate)) {
+        if ((isSameDay(this.viewDate, date) && this.activeDayIsOpen === true) || events.length === 0) {
+          this.activeDayIsOpen = false;
+        } else {
+          this.activeDayIsOpen = true;
+        }
+        this.viewDate = date;
       }
-      this.viewDate = date;
-    }
-    if (!events.length) {
-      this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
+      if (!events.length) {
+        this.handleEvent('Created', { start: this.clickedDate, end: this.clickedDate, title: '' });
+      }
     }
   }
 
   hourSegmentClicked(event: any): void {
-    this.resetEventForm();
-    this.handleEvent('Created', event);
-    this.clickedDate = event.date;
+    const classList = Array.from(event.sourceEvent.srcElement.classList);
+    const isBreakTime = !!classList.find(cl => cl === 'bg-pink');
+
+    if (!isBreakTime) {
+      this.resetEventForm();
+      this.handleEvent('Created', event);
+      this.clickedDate = event.date;
+    }
   }
 
   eventTimesChanged({ event, newStart, newEnd }: CalendarEventTimesChangedEvent): void {
@@ -348,10 +355,14 @@ export class CalendarComponent implements OnInit {
 
   beforeMonthViewRender(renderEvent: CalendarMonthViewBeforeRenderEvent): void {
     renderEvent.body.forEach((day) => {
-      const dayOfMonth = day.date.getDate();
-      if (dayOfMonth > 5 && dayOfMonth < 10 && day.inMonth) {
+      const isWeekend = day.isWeekend;
+      if (isWeekend) {
         day.cssClass = 'bg-pink';
       }
+      // const dayOfMonth = day.date.getDate();
+      // if (dayOfMonth > 5 && dayOfMonth < 10 && day.inMonth) {
+      //   day.cssClass = 'bg-pink';
+      // }
     });
   }
 
@@ -359,13 +370,13 @@ export class CalendarComponent implements OnInit {
     renderEvent.hourColumns.forEach((hourColumn) => {
       hourColumn.hours.forEach((hour) => {
         hour.segments.forEach((segment) => {
-          if (
-            segment.date.getHours() >= 2 &&
-            segment.date.getHours() <= 5 &&
-            segment.date.getDay() === 2
-          ) {
+          const isWeekend = this.weekendDays.find(item => item === segment.date.getDay());
+          if (segment.date.getDay() === isWeekend) {
             segment.cssClass = 'bg-pink';
           }
+          // if (segment.date.getHours() >= 2 && segment.date.getHours() <= 5 && segment.date.getDay() === 2) {
+          //   segment.cssClass = 'bg-pink';
+          // }
         });
       });
     });
@@ -375,9 +386,13 @@ export class CalendarComponent implements OnInit {
     renderEvent.hourColumns.forEach((hourColumn) => {
       hourColumn.hours.forEach((hour) => {
         hour.segments.forEach((segment) => {
-          if (segment.date.getHours() >= 2 && segment.date.getHours() <= 5) {
+          const isWeekend = this.weekendDays.find(item => item === segment.date.getDay());
+          if (isWeekend) {
             segment.cssClass = 'bg-pink';
           }
+          // if (segment.date.getHours() >= 2 && segment.date.getHours() <= 5) {
+          //   segment.cssClass = 'bg-pink';
+          // }
         });
       });
     });
